@@ -26,7 +26,6 @@ nicolaw@laptop:~/dotfiles$ bin/dotfiles.sh install
 ‘bin/dotfiles-normalised-files’ -> ‘dotfiles.sh’
 ‘bin/dotfiles-best-file’ -> ‘dotfiles.sh’
 nicolaw@laptop:~/dotfiles$ bin/dotfiles-symlink-files ~/dotfiles/ ~
-‘/home/nicolaw/bin/assert.sh’ -> ‘../dotfiles/bin/assert.sh’
 ‘/home/nicolaw/bin/dotfiles-symlink-files’ -> ‘../dotfiles/bin/dotfiles-symlink-files’
 ‘/home/nicolaw/bin/dotfiles-available-identities’ -> ‘../dotfiles/bin/dotfiles-available-identities’
 ‘/home/nicolaw/bin/dotfiles-normalised-files’ -> ‘../dotfiles/bin/dotfiles-normalised-files’
@@ -73,4 +72,44 @@ Examples:
 Where more than one file matches a host, a weighting order is applied to the
 file identities, and the highest weighted file is used. See
 `dotfiles/bin/dotfiles-file-weights` for an example.
+
+Here we create a couple of different `.examplerc` files. The first is intended
+to be used on Ubuntu and Debian based hosts; the second on RedHat and Fedora.
+
+```
+nicolaw@laptop:~$ echo "# Debian family example config file" > 'dotfiles/.examplerc~%ubuntu,%debian'
+nicolaw@laptop:~$ echo "# RedHat family example config file" > 'dotfiles/.examplerc~%redhat,%fedora'
+```
+
+Next we re-run the `dotfiles-symlink-files` command, giving `~/dotfiles/` as the
+source directory containing your configuration files that you want to be
+symlinked to, and the second argument `~` indicating the files should be linked
+in to your home directory.
+
+```
+nicolaw@laptop:~$ dotfiles-symlink-files ~/dotfiles/ ~
+removed ‘/home/nicolaw/bin/dotfiles-normalised-files’
+‘/home/nicolaw/bin/dotfiles-normalised-files’ -> ‘../dotfiles/bin/dotfiles-normalised-files’
+removed ‘/home/nicolaw/bin/dotfiles-available-identities’
+‘/home/nicolaw/bin/dotfiles-available-identities’ -> ‘../dotfiles/bin/dotfiles-available-identities’
+removed ‘/home/nicolaw/bin/dotfiles-best-file’
+‘/home/nicolaw/bin/dotfiles-best-file’ -> ‘../dotfiles/bin/dotfiles-best-file’
+removed ‘/home/nicolaw/bin/dotfiles-file-weights’
+‘/home/nicolaw/bin/dotfiles-file-weights’ -> ‘../dotfiles/bin/dotfiles-file-weights’
+removed ‘/home/nicolaw/bin/dotfiles.sh’
+‘/home/nicolaw/bin/dotfiles.sh’ -> ‘../dotfiles/bin/dotfiles.sh’
+removed ‘/home/nicolaw/bin/dotfiles-symlink-files’
+‘/home/nicolaw/bin/dotfiles-symlink-files’ -> ‘../dotfiles/bin/dotfiles-symlink-files’
+‘/home/nicolaw/.examplerc’ -> ‘dotfiles/.examplerc~%ubuntu,%debian’
+```
+
+Notice that pre-existing symlinks are removed first.
+
+```
+nicolaw@laptop:~$ ll .examplerc
+lrwxrwxrwx 1 nicolaw nicolaw 35 Nov  1 23:09 .examplerc -> dotfiles/.examplerc~%ubuntu,%debian
+nicolaw@laptop:~$ cat .examplerc
+# Debian family example config file
+nicolaw@laptop:~$
+```
 
