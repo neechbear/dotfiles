@@ -88,24 +88,13 @@ in to your home directory.
 
 ```
 nicolaw@laptop:~$ dotfiles-symlink-files ~/dotfiles/ ~
-removed ‘/home/nicolaw/bin/dotfiles-normalised-files’
 ‘/home/nicolaw/bin/dotfiles-normalised-files’ -> ‘../dotfiles/bin/dotfiles-normalised-files’
-removed ‘/home/nicolaw/bin/dotfiles-available-identities’
 ‘/home/nicolaw/bin/dotfiles-available-identities’ -> ‘../dotfiles/bin/dotfiles-available-identities’
-removed ‘/home/nicolaw/bin/dotfiles-best-file’
 ‘/home/nicolaw/bin/dotfiles-best-file’ -> ‘../dotfiles/bin/dotfiles-best-file’
-removed ‘/home/nicolaw/bin/dotfiles-file-weights’
 ‘/home/nicolaw/bin/dotfiles-file-weights’ -> ‘../dotfiles/bin/dotfiles-file-weights’
-removed ‘/home/nicolaw/bin/dotfiles.sh’
 ‘/home/nicolaw/bin/dotfiles.sh’ -> ‘../dotfiles/bin/dotfiles.sh’
-removed ‘/home/nicolaw/bin/dotfiles-symlink-files’
 ‘/home/nicolaw/bin/dotfiles-symlink-files’ -> ‘../dotfiles/bin/dotfiles-symlink-files’
 ‘/home/nicolaw/.examplerc’ -> ‘dotfiles/.examplerc~%ubuntu,%debian’
-```
-
-Notice that pre-existing symlinks are removed first.
-
-```
 nicolaw@laptop:~$ ll .examplerc
 lrwxrwxrwx 1 nicolaw nicolaw 35 Nov  1 23:09 .examplerc -> dotfiles/.examplerc~%ubuntu,%debian
 nicolaw@laptop:~$ cat .examplerc
