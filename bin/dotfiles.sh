@@ -201,10 +201,12 @@ symlink_files () {
       declare link_name="${target%/}/${file##*/}"
       declare link_target="$(best_file "$file")"
       [[ -z "$link_target" ]] && continue
-      declare relative_link_target="$(relative_file "$link_name" "$link_target")"
-      [[ -h "$link_name" ]] && rm -v "$link_name"
+
       [[ ! -d "$(dirname "$link_name")" ]] && mkdir -p "$(dirname "$link_name")" 
-      ln -v -s -T "$relative_link_target" "$link_name"
+      declare relative_link_target="$(relative_file "$link_name" "$link_target")"
+      declare force=""
+      [[ -h "$link_name" ]] && force=1
+      ln ${force:+-f} -v -s -T "$relative_link_target" "$link_name"
     fi
   done < <(normalised_files "$path")
 }
