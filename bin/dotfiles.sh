@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 declare -ga ignore_regex=(
-    "^\.git.*" "^README\.md$" "^\.svn.*" "\^.cvs.*" "\..*~swp$" "^/*\.bak$"
-    "^LICENSE$"
+    "^\.git$" "^\.gitignore" "^README\.md$" "^\.svn.*" "\^.cvs.*" "\..*~swp$" ".*\.bak$"
+    "^LICENSE$" "\.swp$"
   )
 
 declare -gA df_sigil_map=(
@@ -45,15 +45,17 @@ populate_identity_map () {
   [[ "${df_ident["distrib"],,}" = "centos" ]] && df_ident["distrib-family"]="redhat"
 
   df_ident["hostname-full"]="$(hostname -f)"
-  df_ident["domain"]="$(hostname -d)"
+  df_ident["domain"]="${df_ident[hostname-full]#*.}"
   df_ident["hostname-short"]="$(hostname -s)"
 
   declare key
   for key in "${!df_ident[@]}" ; do
+    [[ -n "$key" ]] || continue
     df_ident[$key]="${df_ident[$key],,}"
     df_ident[$key]="${df_ident[$key]// /-}"
     declare illegal
     for illegal in "${illegal_chars[@]}" ; do
+      [[ -n "$illegal" ]] || continue
       df_ident[$key]="${df_ident[$key]//${illegal}/}"
     done
   done
@@ -65,6 +67,7 @@ identity_sigil () {
   declare ident="$1"
   declare sigil
   for sigil in ${!df_sigil_map[@]} ; do
+    [[ -n "$sigil" ]] || continue
     declare sigil_ident
     for sigil_ident in ${df_sigil_map[$sigil]} ; do
       if [[ "$ident" = "$sigil_ident" ]] ; then
@@ -101,7 +104,7 @@ weight_of_identity () {
     part="${part:1}"
     declare key
     for key in ${df_sigil_map[$sigil]:-} ; do
-      if [[ "${part,,}" = "${df_ident[$key]}" ]] ; then
+      if [[ "${part,,}" = "${df_ident[$key]:-}" ]] ; then
         weight+=${df_weight_map[$key]:-0}
       fi
     done
@@ -171,7 +174,7 @@ file_weights () {
   declare path="${1:-}"
   [[ -z "$path" || ! -e "$path" ]] && return 64
   declare file
-  for file in "$path"/* ; do
+  for file in "${path%/}"/* ; do
     printf "%d %s\n" "$(weight_of_file "$file")" "$file"
   done
 }
@@ -181,13 +184,20 @@ create_self_symlinks () {
   declare link
   for link in available-identities file-weights symlink-files \
               normalised-files best-file ; do
-    ln -v -f -s -T "${BASH_SOURCE[0]##*/}" "${BASH_SOURCE[0]%/*}/${prefix}$link"
+    ln -v -f -s ${_df_ln_args:-} "${BASH_SOURCE[0]##*/}" "${BASH_SOURCE[0]%/*}/${prefix}$link"
   done
 }
 
 symlink_files () {
-  declare path="$(readlink -f "${1:-}")"
-  declare target="$(readlink -f "${2:-}")"
+  if [[ $# -eq 0 ]] ; then
+    declare path="${DOTFILES_SYMLINK_SOURCE:-}"
+    declare target="${DOTFILES_SYMLINK_TARGET:-}"
+  elif [[ $# -eq 2 ]] ; then
+    declare path="$(readlink -f "${1:-}")"
+    declare target="$(readlink -f "${2:-}")"
+  else
+    return 64
+  fi
   if [[ -z "$path" || ! -e "$path" || -z "$target" \
                    || "$target" =~ ^$path(/|$) ]] ; then
     return 64
@@ -200,13 +210,18 @@ symlink_files () {
     else
       declare link_name="${target%/}/${file##*/}"
       declare link_target="$(best_file "$file")"
-      [[ -z "$link_target" ]] && continue
 
-      [[ ! -d "$(dirname "$link_name")" ]] && mkdir -p "$(dirname "$link_name")" 
+      [[ -n "$link_target" ]] || continue
+      if [[ ! -d "$(dirname "$link_name")" ]] ; then
+        mkdir -p "$(dirname "$link_name")" 
+      fi
+
       declare relative_link_target="$(relative_file "$link_name" "$link_target")"
-      declare force=""
-      [[ -h "$link_name" ]] && force=1
-      ln ${force:+-f} -v -s -T "$relative_link_target" "$link_name"
+      unset force
+      if [[ -h "$link_name" ]] ; then
+        declare force=1
+      fi
+      ln ${force:+-f} -v -s ${_df_ln_args:-} "$relative_link_target" "$link_name"
     fi
   done < <(normalised_files "$path")
 }
@@ -259,6 +274,48 @@ relative_path () {
 
   echo "$result"
 }
+
+# TODO(nicolaw): Like the other comment below, it would be better to test for
+#                the presence of standard GNU core utils instead of checking
+#                the output of uname!
+unset _df_ln_args
+if [[ "${df_ident[system]}" = "linux" ]] ; then
+  declare -r _df_ln_args="-T"
+elif [[ "${df_ident[system]}" = "darwin" ]] ; then
+  declare -r _df_ln_args="-h"
+fi
+
+if [[ "${df_ident[system]}" = "darwin" ]] ; then
+  # TODO(nicolaw): Only implement our own readlink function on OS X if there
+  #                is not a copy of GNU readlink installed. (Some people might
+  #                have installed GNU readlink with Brew).
+  #                In fact, we should do better here and test for GNU readlink
+  #                explicitly so that this work around is present on things
+  #                other than just OS X, (like BSD etc).
+  readlink () {
+    declare -A args=()
+    declare arg
+    for arg in "$@" ; do
+      if [[ "$arg" = "--" ]]; then
+        shift
+        break
+      elif [[ "${arg:0:1}" = "-" ]] ; then
+        shift
+        args["${arg:1}"]=1
+      fi
+    done
+    if [[ -z "$1" ]] ; then
+      return
+    elif [[ -h "$1" ]] ; then
+      command readlink "$1"
+    elif [[ ! -e "$1" ]] && [[ -n "${args[m]:-}" ]] ; then
+      echo "$1"
+    #elif [[ -e "$1" ]] ; then
+    else
+      echo "$1"
+    fi
+  }
+fi
 
 if [[ "$(readlink -f -- "${BASH_SOURCE[0]}")" = "$(readlink -f -- "$0")" ]] ; then
   main () {
