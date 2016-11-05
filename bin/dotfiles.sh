@@ -120,7 +120,7 @@ file_identities () {
   file="${1#*~}"
   file="${file// /}"
   declare ident
-  for ident in "${file//,/ }" ; do
+  for ident in ${file//,/ } ; do
     echo "$ident"
   done
 }
@@ -183,7 +183,7 @@ create_self_symlinks () {
   declare prefix="dotfiles-"
   declare link
   for link in available-identities file-weights symlink-files \
-              normalised-files best-file ; do
+              normalised-files best-file file-identities ; do
     ln -v -f -s ${_df_ln_args:-} "${BASH_SOURCE[0]##*/}" "${BASH_SOURCE[0]%/*}/${prefix}$link"
   done
 }
@@ -330,6 +330,7 @@ if [[ "$(readlink -f -- "${BASH_SOURCE[0]}")" = "$(readlink -f -- "$0")" ]] ; th
     {
       case "${personality,,}" in
         *available*) available_identities | sort -u ;;
+        *file-identities) file_identities "$@" ;;
         *file-weight*) file_weights "$@" ;;
         *best-file) best_file "$@" ;;
         *normali[sz]ed-file*) normalised_files "$@" ;;
