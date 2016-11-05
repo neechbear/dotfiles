@@ -2,7 +2,7 @@
 
 declare -ga ignore_regex=(
     "^\.git$" "^\.gitignore" "^README\.md$" "^\.svn.*" "\^.cvs.*" "\..*~swp$" ".*\.bak$"
-    "^LICENSE$" "\.swp$"
+    "^LICENSE$" "\.swp$" "^\.codeclimate\.yml$" "^\.travis\.yml$"
   )
 
 declare -gA df_sigil_map=(
