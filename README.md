@@ -65,9 +65,9 @@ applied by concatinating them with the plus `+` character.
 
 Examples:
 
- * `dotfiles/.bashrc~%linux`
- * `dotfiles/.bachrc~%darwin,%freebsd`
- * `dotfiles/.bash_logout~@myhostname.domain.com+%ubuntu-trusty`
+* `dotfiles/.bashrc~%linux`
+* `dotfiles/.bachrc~%darwin,%freebsd`
+* `dotfiles/.bash_logout~@myhostname.domain.com+%ubuntu-trusty`
 
 Where more than one file matches a host, a weighting order is applied to the
 file identities, and the highest weighted file is used. See
