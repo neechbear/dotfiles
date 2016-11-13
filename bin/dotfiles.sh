@@ -102,12 +102,19 @@ weight_of_identity () {
   for part in ${ident//+/ } ; do
     declare sigil="${part:0:1}"
     part="${part:1}"
+    declare -i add_weight=0
     declare key
     for key in ${df_sigil_map[$sigil]:-} ; do
       if [[ "${part,,}" = "${df_ident[$key]:-}" ]] ; then
-        weight+=${df_weight_map[$key]:-0}
+        add_weight+=${df_weight_map[$key]:-0}
       fi
     done
+    if [[ $add_weight -gt 0 ]] ; then
+      weight+=$add_weight
+    else
+      weight=-1
+      break
+    fi
   done
   echo -n "$weight"
 }
