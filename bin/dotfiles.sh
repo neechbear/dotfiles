@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 declare -ga ignore_regex=(
-    "^\.git$" "^\.gitignore" "^README\.md$" "^\.svn.*" "\^.cvs.*" "\..*~swp$" ".*\.bak$"
-    "^LICENSE$" "\.swp$" "^\.codeclimate\.yml$" "^\.travis\.yml$"
+    "^\.git$" "^\.gitignore" "^README\.md$" "^\.svn.*" "\^.cvs.*" "\..*~swp$"
+    ".*\.bak$" "^LICENSE$" "\.swp$" "^\.codeclimate\.yml$" "^\.travis\.yml$"
+    "^\.DS_Store$"
   )
 
 declare -gA df_sigil_map=(
@@ -344,6 +345,10 @@ if [[ "$(readlink -f -- "${BASH_SOURCE[0]}")" = "$(readlink -f -- "$0")" ]] ; th
         *symlink-file*)
           syntax="<src_dotfiles_path> <links_path>"
           symlink_files "$@" ;;
+        *)
+          syntax="install"
+          rc=64
+          ;;
       esac
     } || rc=$?
 
