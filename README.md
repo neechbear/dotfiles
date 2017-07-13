@@ -123,7 +123,7 @@ If you're happy with the results, simply add the `-delete` argument on the end
 of the find command:
 
 ```
-find ~ -lname '*/src/rcfiles/*' ! -execdir test -e '{}' \; -print -delete
+find ~ -lname '*/rcfiles/*' ! -execdir test -e '{}' \; -print -delete
 ```
 
 
