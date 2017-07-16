@@ -7,7 +7,7 @@ declare -ga ignore_regex=(
   )
 
 declare -gA df_sigil_map=(
-    ["%"]="distrib-release distrib-codename codename distrib system-release system distrib-family"
+    ["%"]="distrib-release distrib-codename codename distrib system-arch system-release system distrib-family"
     ["@"]="hostname-full hostname-short domain"
   )
 
@@ -20,6 +20,7 @@ declare -gA df_weight_map=(
     ["distrib"]=3
     ["distrib-family"]=2
     ["domain"]=1
+    ["system-arch"]=2
     ["system-release"]=1
     ["system"]=1
   )
@@ -27,24 +28,82 @@ declare -gA df_weight_map=(
 populate_identity_map () {
   declare -gA df_ident=()
   declare -a illegal_chars=(, + ${!df_sigil_map[@]})
+  declare release=""
 
   # See https://en.wikipedia.org/wiki/Uname for examples.
   df_ident["system"]="$(uname -s)"
+  df_ident["system-arch"]="${df_ident[system]}-$(uname -m)"
   df_ident["system-release"]="${df_ident[system]}-$(uname -r)"
 
+  # If we're lucky there's an easy to source lsb-release file.
   if [[ -r "/etc/lsb-release" ]] ; then
-    source "/etc/lsb-release"
-    df_ident["distrib-release"]="${DISTRIB_ID}-${DISTRIB_RELEASE}"
-    df_ident["distrib-codename"]="${DISTRIB_ID}-${DISTRIB_CODENAME}"
-    df_ident["distrib"]="${DISTRIB_ID}"
-    df_ident["codename"]="${DISTRIB_CODENAME}"
+    source "/etc/lsb-release" || true
+    if [[ -n "${DISTRIB_RELEASE:-}" ]] ; then
+      release="${DISTRIB_RELEASE:-}"
+    fi
+    if [[ -n "${DISTRIB_ID:-}" ]] ; then
+      if [[ -n "${DISTRIB_RELEASE:-}" ]] ; then
+        df_ident["distrib-release"]="${DISTRIB_ID:-}-${DISTRIB_RELEASE:-}"
+      fi
+      if [[ -n "${DISTRIB_CODENAME:-}" ]] ; then
+        df_ident["distrib-codename"]="${DISTRIB_ID:-}-${DISTRIB_CODENAME:-}"
+      fi
+      df_ident["distrib"]="${DISTRIB_ID:-}"
+    fi
+    if [[ -n "${DISTRIB_CODENAME:-}" ]] ; then
+      df_ident["codename"]="${DISTRIB_CODENAME:-}"
+    fi
   fi
 
-  [[ -e "/etc/debian-release" ]] && df_ident["distrib-family"]="debian"
-  [[ -e "/etc/redhat-release" ]] && df_ident["distrib-family"]="redhat"
-  [[ "${df_ident["distrib"],,}" = "ubuntu" ]] && df_ident["distrib-family"]="debian"
-  [[ "${df_ident["distrib"],,}" = "centos" ]] && df_ident["distrib-family"]="redhat"
+  # Define distribution families table.
+  declare distrib="" release_file=""
+  declare -A distrib_family=()
+  for distrib in ubuntu knoppix debian ; do
+    distrib_family[$distrib]="debian"
+  done
+  for distrib in fedora fedoracore centos redhat rhel ; do
+    distrib_family[$distrib]="redhat"
+  done
 
+  # Set our distribution family (and possibly distribution too).
+  distrib=""
+  shopt -s nullglob
+  for distrib in ${df_ident["distrib"]:-} \
+      ${!distrib_family[@]} ${distrib_family[@]} ; do
+    distrib="${distrib,,}"
+    for release_file in /etc/${distrib}[-_]release /etc/${distrib}[-_]version ; do
+      df_ident["distrib-family"]="${distrib_family[$distrib]:-unknown-distrib-family}"
+      if [[ -z "${df_ident["distrib"]}" ]] ; then
+        df_ident["distrib"]="$distrib"
+      fi
+      if [[ -z "${df_ident["distrib-release"]}" && -r "$release_file" ]] ; then
+        release="$(< "$release_file")"
+      fi
+      break
+    done
+    if [[ -n "${df_ident["distrib-family"]}" ]] ; then
+      break
+    fi
+  done
+
+  # Attempt to parse /usr/share/distro-info/${distrib}.csv for LSB release
+  # information if we didn't find /etc/lsb-release instead.
+  if [[ -z "${df_ident["distrib-codename"]}" \
+     && -n "${df_ident["distrib"]}" && -n "$release" \
+     && -r "/usr/share/distro-info/${df_ident["distrib"],,}.csv" ]] ; then
+    declare version="" codename="" series="" created="" csv_rel="" eol=""
+    while IFS="," read -r version codename series created csv_rel eol ; do
+      if [[ "$version" == "$release" || "$version" == "${release%.0}" \
+         || "$codename" == "$release" || "$codename" == "${release%/*}" ]] ; then
+        df_ident["distrib-release"]="${df_ident["distrib"]}-${release}"
+        df_ident["distrib-codename"]="${df_ident["distrib"]}-${series}"
+        df_ident["codename"]="$series"
+        break
+      fi
+    done < "/usr/share/distro-info/${df_ident["distrib"],,}.csv"
+  fi
+
+  # Hostname and domain names.
   df_ident["hostname-full"]="$(hostname -f)"
   df_ident["domain"]="${df_ident[hostname-full]#*.}"
   df_ident["hostname-short"]="$(hostname -s)"
