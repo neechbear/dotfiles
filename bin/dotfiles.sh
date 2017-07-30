@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
-declare -ga ignore_regex=(
+declare -a ignore_regex=(
     "^\.git$" "^\.gitignore" "^README\.md$" "^\.svn.*" "\^.cvs.*" "\..*~swp$"
     ".*\.bak$" "^LICENSE$" "\.swp$" "^\.codeclimate\.yml$" "^\.travis\.yml$"
     "^\.DS_Store$"
   )
 
-declare -gA df_sigil_map=(
-    ["%"]="distrib-release distrib-codename codename distrib system-arch system-release system distrib-family"
-    ["@"]="hostname-full hostname-short domain"
+declare -A df_sigil_map=(
+    ["%_"]="distrib-release distrib-codename codename distrib system-arch system-release system distrib-family"
+    ["@_"]="hostname-full hostname-short domain"
   )
 
-declare -gA df_weight_map=(
+declare -A df_weight_map=(
     ["hostname-full"]=20
     ["hostname-short"]=8
     ["distrib-release"]=5
@@ -25,10 +25,14 @@ declare -gA df_weight_map=(
     ["system"]=1
   )
 
+declare -A df_ident=()
+
 populate_identity_map () {
-  declare -gA df_ident=()
-  declare -a illegal_chars=(, + ${!df_sigil_map[@]})
-  declare release=""
+  declare -a illegal_chars=(, +)
+  declare release="" sigil=""
+  for sigil in "${!df_sigil_map[@]})" ; do
+    illegal_chars+="${sigil:0:1}"
+  done
 
   # See https://en.wikipedia.org/wiki/Uname for examples.
   df_ident["system"]="$(uname -s)"
@@ -125,13 +129,14 @@ populate_identity_map
 
 identity_sigil () {
   declare ident="$1"
-  declare sigil
-  for sigil in ${!df_sigil_map[@]} ; do
-    [[ -n "$sigil" ]] || continue
-    declare sigil_ident
+  declare sigil=""
+  for sigil in "${!df_sigil_map[@]}" ; do
+    declare sigil_char="${sigil:0:1}"
+    [[ -n "$sigil_char" ]] || continue
+    declare sigil_ident=""
     for sigil_ident in ${df_sigil_map[$sigil]} ; do
       if [[ "$ident" = "$sigil_ident" ]] ; then
-        echo -n "$sigil"
+        echo -n "$sigil_char"
         return
       fi
     done
@@ -163,7 +168,7 @@ weight_of_identity () {
     declare sigil="${part:0:1}"
     part="${part:1}"
     declare -i add_weight=0
-    declare key
+    declare key=""
     for key in ${df_sigil_map[$sigil]:-} ; do
       if [[ "${part,,}" = "${df_ident[$key]:-}" ]] ; then
         add_weight+=${df_weight_map[$key]:-0}
