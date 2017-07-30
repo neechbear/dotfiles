@@ -1,5 +1,17 @@
 # dotfiles
 
+`dotfiles.sh` is a small Bash 4 script that will selectively symlink
+configuration files into to your home directory, depending on your operating
+system, architecture, hostname or domain name. The functional objective of which
+is to allow storage of all configuration files, regardless of operating system
+or host, in a single source VCS repository such as GitHub or BitBucket.
+
+See https://github.com/neechbear/dotfiles-example for a real-world example of
+how this can be used.
+
+
+## Installation
+
 Installation is as simple as:
 
 ```bash
@@ -50,6 +62,7 @@ nicolaw@laptop:~/dotfiles$ bin/dotfiles-available-identities
 %debian
 %linux
 %linux-4.4.0-45-generic
+%linux-4.9.0-3-amd64
 @home.nicolaw.co.uk
 %xenial
 %ubuntu
@@ -125,6 +138,12 @@ of the find command:
 ```
 find ~ -lname '*/rcfiles/*' ! -execdir test -e '{}' \; -print -delete
 ```
+
+
+## Example Usage
+
+See the https://github.com/neechbear/dotfiles-example GitHub project for a
+real-world example of how to use this software.
 
 
 ## License
