@@ -134,7 +134,7 @@ identity_sigil () {
     declare sigil_char="${sigil:0:1}"
     [[ -n "$sigil_char" ]] || continue
     declare sigil_ident=""
-    for sigil_ident in ${df_sigil_map[$sigil]} ; do
+    for sigil_ident in ${df_sigil_map[$sigil]} ${df_sigil_map[${sigil}_]} ; do
       if [[ "$ident" = "$sigil_ident" ]] ; then
         echo -n "$sigil_char"
         return
@@ -169,7 +169,7 @@ weight_of_identity () {
     part="${part:1}"
     declare -i add_weight=0
     declare key=""
-    for key in ${df_sigil_map[$sigil]:-} ; do
+    for key in ${df_sigil_map[$sigil]:-} ${df_sigil_map[${sigil}_]:-} ; do
       if [[ "${part,,}" = "${df_ident[$key]:-}" ]] ; then
         add_weight+=${df_weight_map[$key]:-0}
       fi
@@ -390,11 +390,34 @@ if [[ "${df_ident[system]}" = "darwin" ]] ; then
 fi
 
 if [[ "$(readlink -f -- "${BASH_SOURCE[0]}")" = "$(readlink -f -- "$0")" ]] ; then
+  # Enable improved debugging if DEBUG is set.
+  if [[ "${DEBUG:-}" =~ ^[Yy]es|[Oo]n|[Tt]rue|[Ee]nabled?|1$ ]] ; then
+    export PS4='+ $$($BASHPID) +${SECONDS}s (${BASH_SOURCE[0]}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    trap 'declare rc=$?;
+          >&2 echo "Unexpected error executing $BASH_COMMAND at ${BASH_SOURCE[0]} line $LINENO";
+          exit $?' ERR
+    set -x
+  fi
+
   main () {
     if [[ $# -eq 1 && "$1" = "install" ]] ; then
       create_self_symlinks
       return $?
     fi
+
+    # populate_identity_map
+    # identity_sigil
+    # weight_of_file
+    # weight_of_identity
+    # file_identities
+    # available_identities
+    # best_file
+    # normalised_files
+    # file_weights
+    # create_self_symlinks
+    # symlink_files
+    # relative_file
+    # relative_path
 
     declare syntax
     declare personality="${0##*/}"
@@ -424,7 +447,6 @@ if [[ "$(readlink -f -- "${BASH_SOURCE[0]}")" = "$(readlink -f -- "$0")" ]] ; th
 
   set -euo pipefail
   shopt -s nullglob dotglob
-  #trap caller ERR
   main "$@"
   exit $?
 fi
